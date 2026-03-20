@@ -1,0 +1,26 @@
+{
+    "id": "chatcmpl-reasoning-002",
+    "object": "chat.completion",
+    "created": 1700000000,
+    "model": "@cf/moonshotai/kimi-k2.5",
+    "choices": [
+        {
+            "index": 0,
+            "message": {
+                "role": "assistant",
+                "content": null,
+                "refusal": null,
+                "reasoning_content": "The user wants me to say hello. I need to think about this carefully and provide a good greeting that is exactly one sentence."
+            },
+            "finish_reason": "length"
+        }
+    ],
+    "usage": {
+        "prompt_tokens": 14,
+        "completion_tokens": 50,
+        "total_tokens": 64,
+        "prompt_tokens_details": {
+            "cached_tokens": 0
+        }
+    }
+}

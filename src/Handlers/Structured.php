@@ -14,12 +14,16 @@ use Prism\Prism\Structured\Step;
 use Prism\Prism\ValueObjects\Messages\AssistantMessage;
 use Prism\Prism\ValueObjects\Meta;
 use Prism\Prism\ValueObjects\Usage;
+use PrismWorkersAi\Concerns\AppliesSessionAffinity;
+use PrismWorkersAi\Concerns\ExtractsThinking;
 use PrismWorkersAi\Concerns\MapsFinishReason;
 use PrismWorkersAi\Concerns\ValidatesResponses;
 use PrismWorkersAi\Maps\MessageMap;
 
 class Structured
 {
+    use AppliesSessionAffinity;
+    use ExtractsThinking;
     use MapsFinishReason;
     use ValidatesResponses;
 
@@ -70,6 +74,8 @@ class Structured
      */
     protected function addStep(array $data, Request $request, string $content, ?array $parsed): void
     {
+        $thinking = $this->extractThinkingFromMessage($data);
+
         $this->responseBuilder->addStep(new Step(
             text: $content,
             finishReason: $this->mapFinishReason($data),
@@ -83,7 +89,7 @@ class Structured
             ),
             messages: $request->messages(),
             systemPrompts: $request->systemPrompts(),
-            additionalContent: [],
+            additionalContent: $thinking !== '' ? ['thinking' => $thinking] : [],
             structured: $parsed ?? [],
             raw: $data,
         ));
@@ -91,6 +97,8 @@ class Structured
 
     protected function sendRequest(Request $request): ClientResponse
     {
+        $this->applySessionAffinity($request);
+
         $responseFormat = $this->buildResponseFormat($request);
 
         /** @var ClientResponse $response */

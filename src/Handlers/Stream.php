@@ -22,6 +22,9 @@ use Prism\Prism\Streaming\Events\StreamStartEvent;
 use Prism\Prism\Streaming\Events\TextCompleteEvent;
 use Prism\Prism\Streaming\Events\TextDeltaEvent;
 use Prism\Prism\Streaming\Events\TextStartEvent;
+use Prism\Prism\Streaming\Events\ThinkingCompleteEvent;
+use Prism\Prism\Streaming\Events\ThinkingEvent;
+use Prism\Prism\Streaming\Events\ThinkingStartEvent;
 use Prism\Prism\Streaming\Events\ToolCallEvent;
 use Prism\Prism\Streaming\StreamState;
 use Prism\Prism\Text\Request;
@@ -30,6 +33,8 @@ use Prism\Prism\ValueObjects\Messages\ToolResultMessage;
 use Prism\Prism\ValueObjects\ToolCall;
 use Prism\Prism\ValueObjects\Usage;
 use Psr\Http\Message\StreamInterface;
+use PrismWorkersAi\Concerns\AppliesSessionAffinity;
+use PrismWorkersAi\Concerns\ExtractsThinking;
 use PrismWorkersAi\Concerns\MapsFinishReason;
 use PrismWorkersAi\Concerns\ValidatesResponses;
 use PrismWorkersAi\Maps\FinishReasonMap;
@@ -40,7 +45,7 @@ use Throwable;
 
 class Stream
 {
-    use CallsTools, MapsFinishReason, ValidatesResponses;
+    use AppliesSessionAffinity, CallsTools, ExtractsThinking, MapsFinishReason, ValidatesResponses;
 
     protected StreamState $state;
 
@@ -104,6 +109,40 @@ class Stream
                     id: EventID::generate(),
                     timestamp: time()
                 );
+            }
+
+            $thinkingContent = $this->extractThinking($data, $request);
+
+            if ($thinkingContent !== '' && $thinkingContent !== '0') {
+                if ($this->state->shouldEmitThinkingStart()) {
+                    $this->state
+                        ->withReasoningId(EventID::generate())
+                        ->markThinkingStarted();
+
+                    yield new ThinkingStartEvent(
+                        id: EventID::generate(),
+                        timestamp: time(),
+                        reasoningId: $this->state->reasoningId()
+                    );
+                }
+
+                yield new ThinkingEvent(
+                    id: EventID::generate(),
+                    timestamp: time(),
+                    delta: $thinkingContent,
+                    reasoningId: $this->state->reasoningId()
+                );
+
+                continue;
+            }
+
+            if ($this->state->hasThinkingStarted() && $thinkingContent === '') {
+                yield new ThinkingCompleteEvent(
+                    id: EventID::generate(),
+                    timestamp: time(),
+                    reasoningId: $this->state->reasoningId()
+                );
+                $this->state->resetTextState();
             }
 
             if ($this->hasToolCalls($data)) {
@@ -363,6 +402,8 @@ class Stream
 
     protected function sendRequest(Request $request): Response
     {
+        $this->applySessionAffinity($request);
+
         /** @var Response $response */
         $response = $this->client
             ->withOptions(['stream' => true])

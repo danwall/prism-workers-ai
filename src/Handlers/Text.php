@@ -20,6 +20,8 @@ use Prism\Prism\ValueObjects\Meta;
 use Prism\Prism\ValueObjects\ToolCall;
 use Prism\Prism\ValueObjects\ToolResult;
 use Prism\Prism\ValueObjects\Usage;
+use PrismWorkersAi\Concerns\AppliesSessionAffinity;
+use PrismWorkersAi\Concerns\ExtractsThinking;
 use PrismWorkersAi\Concerns\MapsFinishReason;
 use PrismWorkersAi\Concerns\ValidatesResponses;
 use PrismWorkersAi\Maps\MessageMap;
@@ -28,7 +30,9 @@ use PrismWorkersAi\Maps\ToolMap;
 
 class Text
 {
+    use AppliesSessionAffinity;
     use CallsTools;
+    use ExtractsThinking;
     use MapsFinishReason;
     use ValidatesResponses;
 
@@ -101,6 +105,8 @@ class Text
 
     protected function sendRequest(Request $request): ClientResponse
     {
+        $this->applySessionAffinity($request);
+
         $payload = array_merge([
             'model' => $request->model(),
             'messages' => (new MessageMap($request->messages(), $request->systemPrompts()))(),
@@ -144,6 +150,8 @@ class Text
             $content = json_encode($content);
         }
 
+        $thinking = $this->extractThinkingFromMessage($data);
+
         $this->responseBuilder->addStep(new Step(
             text: $content,
             finishReason: $this->mapFinishReason($data),
@@ -160,7 +168,7 @@ class Text
             ),
             messages: $request->messages(),
             systemPrompts: $request->systemPrompts(),
-            additionalContent: [],
+            additionalContent: $thinking !== '' ? ['thinking' => $thinking] : [],
             raw: $data,
         ));
     }

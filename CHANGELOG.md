@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.3.0 — 2026-03-19
+
+### Features
+
+- **Reasoning model support** — Extract `reasoning_content` from thinking models like Kimi K2.5 (`@cf/moonshotai/kimi-k2.5`). Non-streaming responses surface thinking in `$response->steps[0]->additionalContent['thinking']`. Streaming emits `ThinkingStartEvent`, `ThinkingEvent` (deltas), and `ThinkingCompleteEvent` — matching Prism's xAI driver pattern.
+- **Session affinity** — Opt-in `x-session-affinity` header via `->withProviderOptions(['session_affinity' => 'ses_...'])`. Routes multi-turn requests to the same Workers AI instance for prefix caching (lower TTFT, discounted cached tokens). Default off — no behavior change for existing code.
+
+### New Files
+
+- `src/Concerns/ExtractsThinking.php` — Trait for extracting `reasoning_content` / `reasoning` from both streaming deltas and non-streaming responses
+- `src/Concerns/AppliesSessionAffinity.php` — Trait for conditionally adding `x-session-affinity` header from provider options
+
+### Tests
+
+- 8 new tests: reasoning extraction (text, streaming, null content, non-reasoning passthrough), session affinity (text, streaming, structured, off-by-default)
+- 62 tests, 124 assertions total
+
+### Stats
+
+- Validated against live Cloudflare Workers AI endpoint with Kimi K2.5
+
 ## v0.2.0 — 2026-03-19
 
 ### Bug Fixes

@@ -107,6 +107,36 @@ $response = Prism::text()
     ->withMaxSteps(3)
     ->withPrompt('What is the weather?')
     ->asText();
+
+// Reasoning models (Kimi K2.5) — thinking content extracted automatically
+$response = Prism::text()
+    ->using('workers-ai', 'workers-ai/@cf/moonshotai/kimi-k2.5')
+    ->withMaxTokens(2000) // reasoning models need higher max_tokens
+    ->withPrompt('What is 15 * 37?')
+    ->asText();
+
+$response->text; // "555"
+$response->steps[0]->additionalContent['thinking']; // "The user is asking for the product of 15 and 37..."
+
+// Streaming with thinking events
+$stream = Prism::text()
+    ->using('workers-ai', 'workers-ai/@cf/moonshotai/kimi-k2.5')
+    ->withMaxTokens(2000)
+    ->withPrompt('Explain briefly why the sky is blue.')
+    ->asStream();
+
+foreach ($stream as $event) {
+    // ThinkingStartEvent, ThinkingEvent (deltas), ThinkingCompleteEvent
+    // then TextStartEvent, TextDeltaEvent, TextCompleteEvent
+}
+
+// Session affinity (prefix caching for multi-turn conversations)
+$response = Prism::text()
+    ->using('workers-ai', 'workers-ai/@cf/moonshotai/kimi-k2.5')
+    ->withProviderOptions(['session_affinity' => 'ses_' . $conversation->id])
+    ->withMaxTokens(2000)
+    ->withPrompt('Follow-up question...')
+    ->asText();
 ```
 
 ### With Laravel AI SDK
@@ -135,11 +165,14 @@ class MyAgent implements Agent, Conversational { ... }
 
 | Model | Use Case |
 |-------|----------|
+| `workers-ai/@cf/moonshotai/kimi-k2.5` | Frontier — smartest (256K context, reasoning, vision, tool calling) |
 | `workers-ai/@cf/meta/llama-3.3-70b-instruct-fp8-fast` | General purpose (best quality/speed) |
 | `workers-ai/@cf/meta/llama-3.1-8b-instruct` | Fast/cheap tasks |
 | `workers-ai/@cf/qwen/qwq-32b` | Reasoning |
 | `workers-ai/@cf/qwen/qwen2.5-coder-32b-instruct` | Code generation |
 | `workers-ai/@cf/baai/bge-large-en-v1.5` | Embeddings (1024 dimensions) |
+
+> **Reasoning models:** Kimi K2.5 is a thinking model — it reasons before answering. Set `withMaxTokens(2000)` or higher, as reasoning tokens count against the limit. The thinking chain is available in `$response->steps[0]->additionalContent['thinking']`.
 
 All model names must be prefixed with `workers-ai/` when routing through AI Gateway, so the gateway knows which provider to route to.
 
