@@ -22,6 +22,7 @@ use Prism\Prism\ValueObjects\ToolResult;
 use Prism\Prism\ValueObjects\Usage;
 use PrismWorkersAi\Concerns\AppliesSessionAffinity;
 use PrismWorkersAi\Concerns\ExtractsThinking;
+use PrismWorkersAi\Concerns\ForwardsProviderOptions;
 use PrismWorkersAi\Concerns\MapsFinishReason;
 use PrismWorkersAi\Concerns\ValidatesResponses;
 use PrismWorkersAi\Maps\MessageMap;
@@ -33,6 +34,7 @@ class Text
     use AppliesSessionAffinity;
     use CallsTools;
     use ExtractsThinking;
+    use ForwardsProviderOptions;
     use MapsFinishReason;
     use ValidatesResponses;
 
@@ -116,7 +118,7 @@ class Text
             'top_p' => $request->topP(),
             'tools' => ToolMap::map($request->tools()),
             'tool_choice' => ToolChoiceMap::map($request->toolChoice()),
-        ]));
+        ]), $this->forwardedProviderOptions($request));
 
         /** @var ClientResponse $response */
         $response = $this->client->post('chat/completions', $payload);

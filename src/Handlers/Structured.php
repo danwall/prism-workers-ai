@@ -16,6 +16,7 @@ use Prism\Prism\ValueObjects\Meta;
 use Prism\Prism\ValueObjects\Usage;
 use PrismWorkersAi\Concerns\AppliesSessionAffinity;
 use PrismWorkersAi\Concerns\ExtractsThinking;
+use PrismWorkersAi\Concerns\ForwardsProviderOptions;
 use PrismWorkersAi\Concerns\MapsFinishReason;
 use PrismWorkersAi\Concerns\ValidatesResponses;
 use PrismWorkersAi\Maps\MessageMap;
@@ -24,6 +25,7 @@ class Structured
 {
     use AppliesSessionAffinity;
     use ExtractsThinking;
+    use ForwardsProviderOptions;
     use MapsFinishReason;
     use ValidatesResponses;
 
@@ -112,7 +114,7 @@ class Structured
             ], Arr::whereNotNull([
                 'temperature' => $request->temperature(),
                 'top_p' => $request->topP(),
-            ]))
+            ]), $this->forwardedProviderOptions($request))
         );
 
         return $response;

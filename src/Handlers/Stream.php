@@ -35,6 +35,7 @@ use Prism\Prism\ValueObjects\Usage;
 use Psr\Http\Message\StreamInterface;
 use PrismWorkersAi\Concerns\AppliesSessionAffinity;
 use PrismWorkersAi\Concerns\ExtractsThinking;
+use PrismWorkersAi\Concerns\ForwardsProviderOptions;
 use PrismWorkersAi\Concerns\MapsFinishReason;
 use PrismWorkersAi\Concerns\ValidatesResponses;
 use PrismWorkersAi\Maps\FinishReasonMap;
@@ -45,7 +46,7 @@ use Throwable;
 
 class Stream
 {
-    use AppliesSessionAffinity, CallsTools, ExtractsThinking, MapsFinishReason, ValidatesResponses;
+    use AppliesSessionAffinity, CallsTools, ExtractsThinking, ForwardsProviderOptions, MapsFinishReason, ValidatesResponses;
 
     protected StreamState $state;
 
@@ -419,7 +420,7 @@ class Stream
                     'top_p' => $request->topP(),
                     'tools' => ToolMap::map($request->tools()),
                     'tool_choice' => ToolChoiceMap::map($request->toolChoice()),
-                ]))
+                ]), $this->forwardedProviderOptions($request))
             );
 
         return $response;

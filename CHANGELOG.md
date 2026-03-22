@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.4.0 — 2026-03-22
+
+### Features
+
+- **Forward provider options to API payload** — Provider options like `reasoning_effort` are now passed through to the Workers AI request body for text, streaming, and structured handlers. Internal options (`session_affinity`, `schema`) are filtered out automatically. This enables reasoning output from models that require an explicit reasoning level parameter.
+
+### Usage
+
+```php
+Prism::text()
+    ->using('workers-ai', 'workers-ai/@cf/moonshotai/kimi-k2.5')
+    ->withPrompt('Explain quantum entanglement')
+    ->withProviderOptions(['reasoning_effort' => 'high'])
+    ->asText();
+```
+
+### New Files
+
+- `src/Concerns/ForwardsProviderOptions.php` — Trait for filtering and forwarding provider options to API payloads
+
+### Tests
+
+- 5 new tests: provider options forwarding (text, streaming, structured), internal key filtering, empty options passthrough
+- 67 tests, 129 assertions total
+
 ## v0.3.0 — 2026-03-19
 
 ### Features
